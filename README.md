@@ -30,7 +30,8 @@ Access API endpoints at `http://localhost:5000`
 ### Web UI Mode
 Run the Streamlit web app:
 ```sh
-python src/main.py
+#python src/main.py
+streamlit run src/main.py --server.headless true
 ```
 
 ### Deploy via Podman

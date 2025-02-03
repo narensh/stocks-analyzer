@@ -109,25 +109,26 @@ def deploy_podman():
 
 if __name__ == "__main__":
     print("Stock Analysis Tool CLI")
-    print("1. Fetch Stock Data (CLI)")
-    print("2. Fetch Fundamental Data")
-    print("3. Start Web API")
-    print("4. Deploy via Podman")
-    print("5. Run Web UI")
-    choice = input("Select option: ")
-    
-    if choice == "1":
-        sym = input("Enter Stock Symbol: ")
-        exch = input("Enter Exchange (NSE/BSE): ")
-        cli_fetch_data(sym, exch)
-    elif choice == "2":
-        sym = input("Enter Stock Symbol: ")
-        exch = input("Enter Exchange (NSE/BSE): ")
-        print(fetch_fundamental_data(sym, exch))
-    elif choice == "3":
-        tool_app.run(host="0.0.0.0", port=5000)
-    elif choice == "4":
-        deploy_podman()
-    elif choice == "5":
-        run_streamlit_ui()
+    run_streamlit_ui()
+#     print("1. Fetch Stock Data (CLI)")
+#     print("2. Fetch Fundamental Data")
+#     print("3. Start Web API")
+#     print("4. Deploy via Podman")
+#     print("5. Run Web UI")
+#     choice = input("Select option: ")
+#
+#     if choice == "1":
+#         sym = input("Enter Stock Symbol: ")
+#         exch = input("Enter Exchange (NSE/BSE): ")
+#         cli_fetch_data(sym, exch)
+#     elif choice == "2":
+#         sym = input("Enter Stock Symbol: ")
+#         exch = input("Enter Exchange (NSE/BSE): ")
+#         print(fetch_fundamental_data(sym, exch))
+#     elif choice == "3":
+#         tool_app.run(host="0.0.0.0", port=5000)
+#     elif choice == "4":
+#         deploy_podman()
+#     elif choice == "5":
+#         run_streamlit_ui()
 
