@@ -50,16 +50,33 @@ def select_stocks(stock_list):
 # Exit Strategy
 def exit_strategy(stock, threshold=10):
     data = fetch_stock_data(stock)
-    if data is not None:
-        current_price = data['Close'].iloc[-1]
-        avg_price = data['Close'].mean()
-        if current_price > avg_price * (1 + threshold / 100):
+
+    if data is not None and not data.empty:
+        print(data.tail())  # Debugging: Print last few rows
+        print(f"Data type of 'Close' column: {type(data['Close'])}")
+
+        # Extract the latest closing price correctly
+        current_price = data["Close"].iloc[-1]
+        if isinstance(current_price, pd.Series):
+            current_price = current_price.values[0]  # Ensure scalar value
+
+        # Compute the average price correctly
+        avg_price = data["Close"].mean()
+        if isinstance(avg_price, pd.Series):
+            avg_price = avg_price.values[0]  # Ensure scalar value
+
+        print(f"Current Price: {current_price}, Type: {type(current_price)}")
+        print(f"Average Price: {avg_price}, Type: {type(avg_price)}")
+
+        if float(current_price) > float(avg_price) * (1 + threshold / 100):  # Ensure float comparison
             return "Sell"
-        elif current_price < avg_price * (1 - threshold / 100):
+        elif float(current_price) < float(avg_price) * (1 - threshold / 100):
             return "Stop Loss"
         else:
             return "Hold"
+
     return "Data Unavailable"
+
 
 # CLI Command to fetch stock data
 def cli_fetch_data(symbol, exchange):
