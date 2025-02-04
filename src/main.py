@@ -6,25 +6,24 @@ from flask import Flask, jsonify, request
 import subprocess
 import numpy as np
 import streamlit as st
+from constants import *
 
-# Configuration
-DATA_DIR = "./data"
-os.makedirs(DATA_DIR, exist_ok=True)
+from strategy import fetch_stock_data, identify_entry_point, identify_exit_point
 
-# Fetch BSE/NSE stock data
-def fetch_stock_data(symbol: str, exchange: str = "NSE", period: str = "1y"):
-    try:
-        if exchange.upper() == "BSE":
-            stock_symbol = f"{symbol}.BO"
-        else:
-            stock_symbol = f"{symbol}.NS"
-        
-        data = yf.download(stock_symbol, period=period)
-        data.to_csv(os.path.join(DATA_DIR, f"{symbol}_{exchange}.csv"))
-        return data
-    except Exception as e:
-        print(f"Error fetching {symbol}: {e}")
-        return None
+# # Fetch BSE/NSE stock data
+# def fetch_stock_data(symbol: str, exchange: str = "NSE", period: str = "1y"):
+#     try:
+#         if exchange.upper() == "BSE":
+#             stock_symbol = f"{symbol}.BO"
+#         else:
+#             stock_symbol = f"{symbol}.NS"
+#
+#         data = yf.download(stock_symbol, period=period)
+#         data.to_csv(os.path.join(DATA_DIR, f"{symbol}_{exchange}.csv"))
+#         return data
+#     except Exception as e:
+#         print(f"Error fetching {symbol}: {e}")
+#         return None
 
 # Fetch fundamental data
 def fetch_fundamental_data(symbol: str, exchange: str = "NSE"):
@@ -119,33 +118,47 @@ def run_streamlit_ui():
         decision = exit_strategy(stock)
         st.write(f"Decision: {decision}")
 
-# Podman Deployment Command
-def deploy_podman():
-    subprocess.run(["podman", "build", "-t", "stock-analysis", "."])
-    subprocess.run(["podman", "run", "-p", "5000:5000", "stock-analysis"])
 
+def show_entry_and_exit_points_for_symbols(symbols, exchange, period=ONE_YEAR):
+    entry_points_list = []
+    exit_points_list = []
+
+    for symbol in symbols:
+        print(f"\nProcessing {symbol} ({exchange})")
+
+        # Fetch Data
+        data = fetch_stock_data(symbol, exchange, period)
+        if data is None or data.empty:
+            print(f"Failed to fetch data for {symbol}")
+            continue
+
+        # Ensure 'Date' column is included
+        data.reset_index(inplace=True)
+
+        # Identify Entry and Exit Points
+        entry_points = identify_entry_point(data)
+        exit_points = identify_exit_point(data)
+
+        # Add symbol column
+        entry_points['Symbol'] = symbol
+        exit_points['Symbol'] = symbol
+
+        # Append to list
+        entry_points_list.append(entry_points[['Date', 'Symbol', 'Close', 'DMA50', 'DMA200', 'Action']])
+        exit_points_list.append(exit_points[['Date', 'Symbol', 'Close', 'DMA50', 'DMA200', 'Action']])
+
+    # Concatenate all results
+    all_entry_points = pd.concat(entry_points_list)
+    all_exit_points = pd.concat(exit_points_list)
+
+    # Display Results
+    print("\n📈 Entry Points:")
+    print(all_entry_points)
+
+    print("\n📉 Exit Points:")
+    print(all_exit_points)
+
+# Example usage
 if __name__ == "__main__":
-    print("Stock Analysis Tool CLI")
-    run_streamlit_ui()
-#     print("1. Fetch Stock Data (CLI)")
-#     print("2. Fetch Fundamental Data")
-#     print("3. Start Web API")
-#     print("4. Deploy via Podman")
-#     print("5. Run Web UI")
-#     choice = input("Select option: ")
-#
-#     if choice == "1":
-#         sym = input("Enter Stock Symbol: ")
-#         exch = input("Enter Exchange (NSE/BSE): ")
-#         cli_fetch_data(sym, exch)
-#     elif choice == "2":
-#         sym = input("Enter Stock Symbol: ")
-#         exch = input("Enter Exchange (NSE/BSE): ")
-#         print(fetch_fundamental_data(sym, exch))
-#     elif choice == "3":
-#         tool_app.run(host="0.0.0.0", port=5000)
-#     elif choice == "4":
-#         deploy_podman()
-#     elif choice == "5":
-#         run_streamlit_ui()
-
+    stock_symbols = ["BEL", "RELIANCE", "TCS"]
+    show_entry_and_exit_points_for_symbols(stock_symbols, NSE)

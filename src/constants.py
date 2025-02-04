@@ -1,0 +1,3 @@
+ONE_YEAR = "1y"
+BSE = "BSE"
+NSE = "NSE"
