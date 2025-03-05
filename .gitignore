@@ -2,3 +2,5 @@
 .stocks-analyzer
 data
 data/*
+.DS_Store
+.idea

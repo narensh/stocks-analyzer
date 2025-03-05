@@ -1,3 +1,4 @@
-ONE_YEAR = "1y"
+ONE_YEAR = "2y"
 BSE = "BSE"
 NSE = "NSE"
+BOM = "BOM"

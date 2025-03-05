@@ -7,8 +7,10 @@ import subprocess
 import numpy as np
 import streamlit as st
 from constants import *
+from tabulate import tabulate
 
 from strategy import fetch_stock_data, identify_entry_point, identify_exit_point
+
 
 # # Fetch BSE/NSE stock data
 # def fetch_stock_data(symbol: str, exchange: str = "NSE", period: str = "1y"):
@@ -34,6 +36,7 @@ def fetch_fundamental_data(symbol: str, exchange: str = "NSE"):
         print(f"Error fetching fundamental data for {symbol}: {e}")
         return None
 
+
 # Stock Selection Algorithm
 def select_stocks(stock_list):
     selected_stocks = []
@@ -45,6 +48,7 @@ def select_stocks(stock_list):
             if moving_avg and rsi > 50:
                 selected_stocks.append(stock)
     return selected_stocks
+
 
 # Exit Strategy
 def exit_strategy(stock, threshold=10):
@@ -82,9 +86,11 @@ def cli_fetch_data(symbol, exchange):
     data = fetch_stock_data(symbol, exchange)
     if data is not None:
         print(f"Fetched data for {symbol} ({exchange})")
-    
+
+
 # Flask Web API
 tool_app = Flask(__name__)
+
 
 @tool_app.route("/fetch_stock", methods=["GET"])
 def api_fetch_stock():
@@ -95,17 +101,20 @@ def api_fetch_stock():
         return jsonify({"message": f"Fetched {symbol} data successfully."})
     return jsonify({"error": "Failed to fetch stock data."}), 400
 
+
 @tool_app.route("/select_stocks", methods=["POST"])
 def api_select_stocks():
     stock_list = request.json.get("stocks", [])
     selected = select_stocks(stock_list)
     return jsonify({"selected_stocks": selected})
 
+
 @tool_app.route("/exit_strategy", methods=["GET"])
 def api_exit_strategy():
     stock = request.args.get("stock")
     decision = exit_strategy(stock)
     return jsonify({"stock": stock, "decision": decision})
+
 
 # Streamlit Web UI
 def run_streamlit_ui():
@@ -136,16 +145,18 @@ def show_entry_and_exit_points_for_symbols(symbols, exchange, period=ONE_YEAR):
         data.reset_index(inplace=True)
 
         # Identify Entry and Exit Points
-        entry_points = identify_entry_point(data)
-        exit_points = identify_exit_point(data)
-
-        # Add symbol column
-        entry_points['Symbol'] = symbol
-        exit_points['Symbol'] = symbol
-
-        # Append to list
-        entry_points_list.append(entry_points[['Date', 'Symbol', 'Close', 'DMA50', 'DMA200', 'Action']])
-        exit_points_list.append(exit_points[['Date', 'Symbol', 'Close', 'DMA50', 'DMA200', 'Action']])
+        try:
+            entry_points = identify_entry_point(data)
+            entry_points['Symbol'] = symbol
+            entry_points_list.append(entry_points[['Date', 'Symbol', 'Close', 'DMA50', 'DMA200', 'Action']])
+        except Exception as e:
+            print(f"Error identifying entry points for {symbol}: {e}")
+        try:
+            exit_points = identify_exit_point(data)
+            exit_points['Symbol'] = symbol
+            exit_points_list.append(exit_points[['Date', 'Symbol', 'Close', 'DMA50', 'DMA200', 'Action']])
+        except Exception as e:
+            print(f"Error identifying exit points for {symbol}: {e}")
 
     # Concatenate all results
     all_entry_points = pd.concat(entry_points_list)
@@ -153,12 +164,32 @@ def show_entry_and_exit_points_for_symbols(symbols, exchange, period=ONE_YEAR):
 
     # Display Results
     print("\n📈 Entry Points:")
-    print(all_entry_points)
+    headers = ["#", "Date", "Symbol", "Close", "DMA50", "DMA200", "Action"]
+    print(tabulate(all_entry_points.iloc[:, :6], headers=headers, tablefmt="grid", stralign="center", numalign="center",
+                   maxcolwidths=[100] * len(headers)))
+    # print(all_entry_points.iloc[:, :5])
 
-    print("\n📉 Exit Points:")
-    print(all_exit_points)
+    if (all_exit_points.empty):
+        print("\nNo exit points found.")
+    else:
+        print("\n📉 Exit Points:")
+        headers = ["Date", "Symbol", "Close", "DMA50", "DMA200", "Action"]
+        print(tabulate(all_exit_points, headers=headers, tablefmt="grid", stralign="center", numalign="center",
+                       maxcolwidths=[20] * len(headers)))
+
 
 # Example usage
 if __name__ == "__main__":
-    stock_symbols = ["BEL", "RELIANCE", "TCS"]
+    stock_symbols = ["BDL"]
+        # , "MCLOUD", "ADANIPOWER", "SONATSOFTW", "RTNPOWER", "KPIGREEN","ADANIENSOL", "SBC", "GOKULAGRO", "HAL", "ADANIGREEN", "ADANIENT", "TATASTEEL", "JIOFIN", "BEL"]
+                     # "SOLARINDS", "RELIANCE", "GESHIP", "POLICYBZR", "ADANIPORTS", "VBL", "TITAN",
+                     # "IWEL", "TIPSMUSIC", "SBIN", "TCS", "ZOMATO", "M&M", "AUROPHARMA",
+                     # "TRENT", "CDSL", "ABBOTINDIA", "ASTRAZEN", "NAUKRI", "KAYNES", "HINDALCO", "BHARTIARTL",
+                     # "SUNPHARMA", "DIXON", "AXISGOLD", "INFY", "GOLD1"]
+    # BOM: SPRIGHT, WAAREERT, KILPEST, DANLAW,
+    # stock_symbols_bom = ["531205", "534618", "532067", "532329"]
+    # BSE: GRAUWEIL
+    # stock_symbols_bse = ["505710"]
     show_entry_and_exit_points_for_symbols(stock_symbols, NSE)
+    # show_entry_and_exit_points_for_symbols(stock_symbols_bom, BOM)
+    # show_entry_and_exit_points_for_symbols(stock_symbols_bse, BSE)

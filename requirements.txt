@@ -5,3 +5,6 @@ flask
 numpy
 streamlit
 podman
+
+#Formatting Tables
+tabulate

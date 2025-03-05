@@ -25,6 +25,7 @@ def fetch_stock_data(symbol: str, exchange: str = "NSE", period: str = "1y"):
             stock_symbol = f"{symbol}.NS"
 
         data = yf.download(stock_symbol, period=period)
+        print(f"{symbol} stock data: {data["Close"]}")
         data.to_csv(os.path.join(DATA_DIR, f"{symbol}_{exchange}.csv"))
         return data
     except Exception as e:
@@ -32,17 +33,32 @@ def fetch_stock_data(symbol: str, exchange: str = "NSE", period: str = "1y"):
         return None
 
 def calculate_dma(data, window=50, displacement=10):
+    if displacement is None:
+        displacement = window
+
+    sma = data['Close'].rolling(window=window).mean()
+    dma = sma.shift(displacement)  # Shift forward by 'displacement' days
+    # print(f"Calculating DMA with window: {window}, displacement: {displacement} | data['Close'].rolling(window=window).mean(): {data['Close'].rolling(window=window).mean()} | ")
+    print(f"Calculating DMA with window: {window}, displacement: {displacement} | dma: {dma} | sma: {sma}")
+    return dma
+
+def calculate_dma_v1(data, window=50, displacement=10):
     """
     Calculate Displaced Moving Average (DMA).
     DMA is an SMA shifted forward by a certain number of periods.
     """
+    print(f"Calculating DMA with window: {window}, displacement: {displacement} | data['Close']: {data['Close']}")
     sma = data['Close'].rolling(window=window).mean()
     dma = sma.shift(displacement)  # Shift forward by 'displacement' days
     return dma
 
-def identify_entry_point(data, dma_short_window=50, dma_long_window=200, displacement=10):
-    data['DMA50'] = calculate_dma(data, window=dma_short_window, displacement=displacement)
-    data['DMA200'] = calculate_dma(data, window=dma_long_window, displacement=displacement)
+def identify_entry_point(data, dma_short_window=50, dma_long_window=200, displacement=None):
+    data['DMA50'] = calculate_dma(data, window=dma_short_window, displacement=-10)
+    data['DMA200'] = calculate_dma(data, window=dma_long_window, displacement=-100)
+
+    data['DMA50'] = data['DMA50'].fillna(0).round(2)
+    data['DMA200'] = data['DMA200'].fillna(0).round(2)
+    # data['Close'] = data['Close'].round(2)
 
     data['Signal'] = 0
     data.iloc[dma_short_window:, data.columns.get_loc('Signal')] = np.where(data['DMA50'].iloc[dma_short_window:] > data['DMA200'].iloc[dma_short_window:], 1, 0)
@@ -52,7 +68,7 @@ def identify_entry_point(data, dma_short_window=50, dma_long_window=200, displac
     entry_points['Action'] = 'BUY'
     return entry_points
 
-def identify_exit_point(data, dma_short_window=50, dma_long_window=200, displacement=10):
+def identify_exit_point(data, dma_short_window=50, dma_long_window=200, displacement=None):
     data['DMA50'] = calculate_dma(data, window=dma_short_window, displacement=displacement)
     data['DMA200'] = calculate_dma(data, window=dma_long_window, displacement=displacement)
 
